@@ -40,15 +40,16 @@ let offRoadDecel = -maxSpeed / 2; // off road deceleration is somewhere in betwe
 let offRoadLimit = maxSpeed / 4; // limit when off road deceleration no longer applies (e.g. you can always go at least this speed even when off road)
 let totalCars = 200; // total number of cars on the road
 let keyLeft = false;
-    keyRight = false;
-    keyFaster = false;
-    keySlower = false;
+keyRight = false;
+keyFaster = false;
+keySlower = false;
 let tire = 0;
 let brake = 0;
 let hang = 0;
 let hangDelay = 50;
 let hangTimer = 0;
 let bikeSpriteSelector = 6;
+let lap = 1;
 
 window.addEventListener(
     'load',
@@ -112,31 +113,31 @@ const update = (dt) => {
     hillsOffset = Util.increase(hillsOffset, (hillsSpeed * playerSegment.curve * (position - startPosition)) / segmentLength, 1);
     woodsOffset = Util.increase(woodsOffset, (woodsSpeed * playerSegment.curve * (position - startPosition)) / segmentLength, 1);
 
-    if(keyLeft) {
-        if(speed > 0) {
+    if (keyLeft) {
+        if (speed > 0) {
             playerX -= dx;
-            if(hangTimer >= hangDelay) {
+            if (hangTimer >= hangDelay) {
                 hangTimer = 0;
                 hang -= 2;
                 hang = Util.limit(hang, -6, 0)
-            }else{
+            } else {
                 hangTimer += dt * 1000;
             }
         }
-    }else if(keyRight) {
-        if(speed > 0) {
+    } else if (keyRight) {
+        if (speed > 0) {
             playerX = playerX + dx;
-            if(hangTimer >= hangDelay) {
+            if (hangTimer >= hangDelay) {
                 hangTimer = 0;
                 hang += 2;
                 hang = Util.limit(hang, 0, 6)
-            }else{
+            } else {
                 hangTimer += dt * 1000;
             }
         }
-    }else{
-        if(hang !== 0) {
-            if(hangTimer >= hangDelay || hangTimer === 0) {
+    } else {
+        if (hang !== 0) {
+            if (hangTimer >= hangDelay || hangTimer === 0) {
                 hangTimer = 0;
                 hang = hang < 0 ? hang + 2 : hang - 2;
             }
@@ -146,18 +147,18 @@ const update = (dt) => {
 
     playerX = playerX - dx * speedPercent * playerSegment.curve * centrifugal;
 
-    if(keySlower) {
+    if (keySlower) {
         speed = Util.accelerate(speed, breaking, dt);
         brake = 14;
-    }else if(keyFaster) {
+    } else if (keyFaster) {
         speed = Util.accelerate(speed, accel, dt);
         brake = 0;
-    }else{
+    } else {
         speed = Util.accelerate(speed, decel, dt);
         brake = 0;
     }
 
-    if((playerX < -1 || playerX > 1) && speed > offRoadLimit) {
+    if ((playerX < -1 || playerX > 1) && speed > offRoadLimit) {
         speed = Util.accelerate(speed, offRoadDecel, dt);
     }
 
@@ -165,6 +166,15 @@ const update = (dt) => {
     speed = Util.limit(speed, 0, maxSpeed);
     tire = Util.toInt(position / 500) % 2;
     bikeSpriteSelector = 6 + tire + hang + brake;
+
+    round = trackLength / 300;
+    posistionplayer = position / 300;
+    if (posistionplayer > (round - 0.7)) {
+        lap++;
+    }
+    document.getElementById("laps").textContent = lap;
+
+    document.getElementById("speed").textContent = speed / 100;
 };
 
 const render = () => {
@@ -194,21 +204,21 @@ const render = () => {
         Util.project(segment.p2, playerX * roadWidth - x - dx, playerY + cameraHeight, position - (segment.looped ? trackLength : 0), cameraDepth, width, height, roadWidth);
         x = x + dx;
         dx = dx + segment.curve;
-        if(segment.p1.camera.z <= cameraDepth || // behind us
+        if (segment.p1.camera.z <= cameraDepth || // behind us
             segment.p2.screen.y >= segment.p1.screen.y || // back face cull
             segment.p2.screen.y >= maxy) { // clip by (already rendered) hill
-        continue;
+            continue;
         }
         Render.segment(ctx, width, lanes, segment.p1.screen.x, segment.p1.screen.y, segment.p1.screen.w, segment.p2.screen.x, segment.p2.screen.y, segment.p2.screen.w, segment.fog, segment.color);
         maxy = segment.p1.screen.y;
     }
 
-    for(n=drawDistance-1; n>0; n--) {
+    for (n = drawDistance - 1; n > 0; n--) {
         segment = segments[(baseSegment.index + n) % segments.length];
 
         if (segment == playerSegment) {
             Render.player(ctx, width, height, resolution, roadWidth, sprites, speed / maxSpeed, cameraDepth / playerZ, width / 2, height / 2 - ((cameraDepth / playerZ) * Util.interpolate(playerSegment.p1.camera.y, playerSegment.p2.camera.y, playerPercent) * height) / 2); // speed * (keyLeft ? -1 : keyRight ? 1 : 0), playerSegment.p2.world.y - playerSegment.p1.world.y
-          }
+        }
     }
-    
+
 };
